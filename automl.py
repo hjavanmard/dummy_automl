@@ -4,6 +4,10 @@ import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.pipeline import Pipeline
 
+# local python files
+import helper_functions
+import parameters
+
 def fit_estimator(X, y, estimator_name, metric_name, hyper_parameter_tuning=False, regression=None):
     '''
     X: a data frame of features (only numeric columns)
@@ -15,7 +19,7 @@ def fit_estimator(X, y, estimator_name, metric_name, hyper_parameter_tuning=Fals
     '''
     # we check regression is True or False in case there is no user input on that one
     if regression is None:
-        is_numeric = np.issubdtype(y.dtype, np.number)
+        is_numeric = helper_functions.is_numeric(y)
         print (type(y))
         if is_numeric and y.nunique() > 5:
             regression = True
@@ -23,17 +27,17 @@ def fit_estimator(X, y, estimator_name, metric_name, hyper_parameter_tuning=Fals
             regression = False
     
     if regression:
-        estimator = regressors[estimator_name]['regressor']
-        param_distributions = regressors[estimator_name]['ParameterRanges'] if hyper_parameter_tuning else {}
-        metric = supported_metrics['regression'][metric_name]
+        estimator = parameters.regressors[estimator_name]['regressor']
+        param_distributions = parameters.regressors[estimator_name]['ParameterRanges'] if hyper_parameter_tuning else {}
+        metric = parameters.supported_metrics['regression'][metric_name]
         scorer = metrics.make_scorer(metric, greater_is_better=False) if '_error' in metric_name else metrics.make_scorer(metric)
     else:
-        estimator = classifiers[estimator_name]['classifier']
-        param_distributions = classifiers[estimator_name]['ParameterRanges'] if hyper_parameter_tuning else {}
-        metric = supported_metrics['classification'][metric_name]
+        estimator = parameters.classifiers[estimator_name]['classifier']
+        param_distributions = parameters.classifiers[estimator_name]['ParameterRanges'] if hyper_parameter_tuning else {}
+        metric = parameters.supported_metrics['classification'][metric_name]
         scorer = metrics.make_scorer(metric, greater_is_better=False) if '_error' in metric_name else metrics.make_scorer(metric)
     # in case we need to do some preprocessing (later will be more)
-    one_hot_encoder = OneHotEncoder(n_values=10)
+    one_hot_encoder = helper_functions.OneHotEncoder(n_values=10)
     pipeline = Pipeline([('one_hot_encoder', one_hot_encoder), ('estimator', estimator)])
     param_distributions = {('estimator__' + key):value for key, value in param_distributions.items()}
     print(pipeline.fit(X,y))
@@ -51,7 +55,7 @@ def pick_best_model(X, y, metric_name=None, hyper_parameter_tuning=False, regres
     models = {}
     # we check regression is True or False in case there is no user input on that one
     if regression is None:
-        is_numeric = np.issubdtype(y.dtype, np.number)
+        is_numeric = helper_functions.is_numeric(y)
         if is_numeric and y.nunique() > 5:
             regression = True
         else:
